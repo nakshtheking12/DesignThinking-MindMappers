@@ -117,8 +117,8 @@ function addMindMappersPageEnhancements() {
                         <span><strong>MINDMAPPERS</strong><span>Seek the Inner Self</span></span>
                     </div>
                     <div class="page-watermark-contact">
-                        <a href="mailto:mindey.support@gmail.com">mindey.support@gmail.com</a>
-                        <div class="page-watermark-note">MindMappers Wellness Space · Reflect Gently · Grow Steadily</div>
+                        <a href="mailto:aishani.t@mindey.org">aishani.t@mindey.org</a>
+                        <div class="page-watermark-note">MindMappers wellness space · Reflect gently · Grow steadily</div>
                     </div>
                 </div>
             </div>
