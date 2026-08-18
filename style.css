@@ -3272,3 +3272,310 @@ body.cursor-click .cursor-ring {
         flex: 1;
     }
 }
+
+
+/* ============================================================================
+   MOBILE GLITCH REPAIR: AUTH FLOW, DASHBOARD STACKING & PHONE-SAFE CONTENT
+   Added after the existing rules so desktop styling remains unchanged.
+   ============================================================================ */
+
+#main-app-content {
+    position: relative;
+    isolation: isolate;
+    overflow-x: hidden;
+}
+
+#main-app-content > .bg-3d-wrapper,
+#main-app-content > .thematic-bg,
+#main-app-content > .graphic-orb,
+#main-app-content > .particle-container {
+    z-index: 0;
+}
+
+#main-app-content > .sticky-header {
+    position: sticky;
+    z-index: 20;
+    isolation: isolate;
+    background: #020e9a;
+}
+
+#main-app-content > .content-container {
+    position: relative;
+    z-index: 2;
+}
+
+img,
+svg,
+canvas {
+    max-width: 100%;
+}
+
+@media (max-width: 768px) {
+    /* Authentication: use natural document scrolling rather than clipping the
+       tall branding + form stack inside a fixed-height card. */
+    .gate-container {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100dvh;
+        min-height: 100%;
+        display: block;
+        overflow-x: hidden;
+        overflow-y: auto;
+        padding: max(14px, env(safe-area-inset-top)) 12px max(24px, env(safe-area-inset-bottom));
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .gate-card-split {
+        display: flex;
+        flex-direction: column;
+        width: min(100%, 430px);
+        max-width: 430px;
+        min-height: 0;
+        height: auto !important;
+        margin: 0 auto;
+        border-radius: 20px !important;
+        overflow: hidden !important;
+        transform: none;
+        animation: none;
+    }
+
+    .gate-branding {
+        flex: 0 0 auto;
+        min-height: 0;
+        padding: 30px 22px 24px;
+    }
+
+    .gate-bg-elements {
+        opacity: 0.62;
+    }
+
+    .gate-logo-wrap {
+        width: 78px;
+        height: 78px;
+        margin-bottom: 15px;
+    }
+
+    .gate-branding h2 {
+        font-size: clamp(1.45rem, 7vw, 1.9rem);
+        line-height: 1.12;
+    }
+
+    .gate-tagline {
+        font-size: 0.78rem;
+    }
+
+    .gate-divider {
+        margin: 13px auto;
+    }
+
+    .gate-desc {
+        max-width: 320px;
+        font-size: 0.8rem;
+        line-height: 1.45;
+    }
+
+    .gate-features {
+        max-width: 320px;
+        gap: 8px;
+        margin-top: 18px;
+    }
+
+    .gfeat {
+        padding: 8px 11px;
+        font-size: 0.76rem;
+    }
+
+    .gate-quote {
+        position: static;
+        max-width: 290px;
+        margin: 15px auto 0;
+        white-space: normal;
+        line-height: 1.45;
+        text-align: center;
+    }
+
+    .gate-form-panel {
+        flex: 0 0 auto;
+        padding: 26px 22px 30px;
+        overflow: visible;
+    }
+
+    #gate-title {
+        font-size: 1.5rem;
+        line-height: 1.2;
+    }
+
+    #gate-subtitle {
+        margin-bottom: 20px;
+        font-size: 0.84rem;
+    }
+
+    .gate-form-panel input,
+    .gate-form-panel .accent-btn {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    /* Dashboard: establish a clean layer above fixed decorative effects. */
+    #main-app-content > .thematic-bg,
+    #main-app-content > .bg-3d-wrapper {
+        opacity: 0.16;
+    }
+
+    #main-app-content > .particle-container,
+    #main-app-content > .graphic-orb {
+        opacity: 0.24;
+    }
+
+    .sticky-header {
+        overflow: hidden;
+        padding: 11px 10px 8px;
+    }
+
+    .header-top-bar {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .branding-block {
+        width: 100%;
+        min-width: 0;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .branding-text {
+        min-width: 0;
+    }
+
+    .branding-block .animate-title {
+        max-width: 100%;
+        overflow: hidden;
+        font-size: clamp(1.35rem, 7vw, 1.95rem);
+        line-height: 1.05;
+        letter-spacing: 1px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .branding-block .tagline {
+        font-size: 0.62rem;
+        letter-spacing: 1px;
+        white-space: nowrap;
+    }
+
+    .mindmappers-logo {
+        flex: 0 0 auto;
+        width: 48px;
+        height: 48px;
+    }
+
+    .profile-navbar-segment {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        justify-content: center;
+        overflow: hidden;
+        padding: 0;
+    }
+
+    .header-action-btns {
+        flex-wrap: nowrap;
+    }
+
+    .nav-container {
+        position: relative;
+        z-index: 2;
+        width: 100%;
+        max-width: 100%;
+        margin: 8px 0 0;
+        justify-content: flex-start;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 8px 2px 9px;
+        gap: 7px;
+        scrollbar-width: thin;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .nav-btn {
+        flex: 0 0 auto;
+        min-height: 40px;
+        padding: 8px 13px;
+        font-size: 0.76rem;
+        white-space: nowrap;
+    }
+
+    .content-container {
+        width: 100%;
+        max-width: 100%;
+        padding-left: 13px;
+        padding-right: 13px;
+        margin-top: 22px;
+    }
+
+    .page-section,
+    .card,
+    .functional-card,
+    .welcome-intro-panel,
+    .neural-brain-card {
+        max-width: 100%;
+        min-width: 0;
+    }
+}
+
+@media (max-width: 420px) {
+    .gate-container {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .gate-branding {
+        padding-left: 17px;
+        padding-right: 17px;
+    }
+
+    .gate-form-panel {
+        padding-left: 18px;
+        padding-right: 18px;
+    }
+
+    .branding-block .animate-title {
+        font-size: clamp(1.2rem, 7vw, 1.65rem);
+    }
+
+    .branding-block .tagline {
+        font-size: 0.56rem;
+    }
+
+    .mindmappers-logo {
+        width: 44px;
+        height: 44px;
+    }
+
+    .user-chip {
+        max-width: 150px;
+    }
+
+    .coin-pill,
+    .nav-action-btn {
+        font-size: 0.72rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gate-card-split,
+    .gate-logo-wrap,
+    .gate-logo-ring,
+    .gate-logo-glow,
+    .gate-mandala,
+    .gate-aura,
+    .gate-lotus-float,
+    .gate-floating-icons,
+    .gate-bottom-orb {
+        animation: none !important;
+    }
+}
