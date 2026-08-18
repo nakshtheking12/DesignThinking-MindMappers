@@ -3579,3 +3579,68 @@ canvas {
         animation: none !important;
     }
 }
+
+
+/* ============================================================================
+   FINAL MOBILE SOURCE FIX
+   The mobile screenshots showed two root causes: the tall auth card was being
+   vertically centred beyond the viewport, and fixed 3D layers were competing
+   with the dashboard stacking context. Keep rich 3D content inside cards, but
+   remove only the full-screen decorative layers on phone-sized screens.
+   ============================================================================ */
+
+@media (max-width: 768px) {
+    .gate-container {
+        align-items: flex-start !important;
+        justify-content: flex-start !important;
+        overflow-y: auto !important;
+        overscroll-behavior-y: contain;
+    }
+
+    .gate-card-split {
+        position: relative;
+        top: 0;
+        margin: 0 auto;
+        transform: none !important;
+        animation: none !important;
+    }
+
+    .gate-branding {
+        min-height: 0 !important;
+        height: auto !important;
+        justify-content: flex-start !important;
+    }
+
+    .gate-logo-wrap {
+        flex: 0 0 auto;
+        margin-top: 4px;
+    }
+
+    /* These full-screen effects are the source of the translucent mobile
+       obstruction. Card-level 3D visuals remain enabled below the fold. */
+    .gate-bg-elements,
+    #main-app-content > .bg-3d-wrapper,
+    #main-app-content > .thematic-bg,
+    #main-app-content > .particle-container,
+    #main-app-content > .graphic-orb {
+        display: none !important;
+    }
+
+    #main-app-content {
+        isolation: isolate;
+        overflow-x: hidden;
+    }
+
+    #main-app-content > .sticky-header {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        background: #020e9a !important;
+        opacity: 1 !important;
+    }
+
+    #main-app-content > .content-container {
+        position: relative;
+        z-index: 1;
+    }
+}
