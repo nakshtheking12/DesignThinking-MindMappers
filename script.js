@@ -1427,8 +1427,8 @@ const communityRoomContent = {
         ],
         takeaway: "Understanding your feelings is not overthinking; it is one way of caring for yourself with honesty.",
         images: [
-            { src: "mind1.jpeg", alt: "Mental well-being workshop with a mentor speaking to students", caption: "A guided conversation about feelings and emotional awareness." },
-            { src: "mind2.jpeg", alt: "Students listening during a mental well-being session", caption: "Making space to listen, reflect, and feel understood." },
+            { src: "mental1.jpeg", alt: "Mental well-being workshop with a mentor speaking to students", caption: "A guided conversation about feelings and emotional awareness." },
+            { src: "mental2.jpeg", alt: "Students listening during a mental well-being session", caption: "Making space to listen, reflect, and feel understood." },
         ]
     },
     yoga: {
