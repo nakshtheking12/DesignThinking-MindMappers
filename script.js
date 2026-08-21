@@ -1085,7 +1085,7 @@ function listenToApplicationsAsStaff() {
                             <span class="staff-pending-pill"><span></span> Pending review</span>
                         </div>
                         <p class="staff-applicant-email">${applicantEmail}</p>
-                        <div class="staff-application-meta"><span>Preferred community room</span><b>${preferredClass}</b></div>
+                        <div class="staff-application-meta"><span>Preferred Community Class :</span><b>${preferredClass}</b></div>
                     </div>
                 </div>
                 <div class="staff-application-actions">
