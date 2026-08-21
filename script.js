@@ -1427,9 +1427,8 @@ const communityRoomContent = {
         ],
         takeaway: "Understanding your feelings is not overthinking; it is one way of caring for yourself with honesty.",
         images: [
-            { src: "WhatsAppImage2026-08-18at9.38.34.jpeg", alt: "Mental well-being workshop with a mentor speaking to students", caption: "A guided conversation about feelings and emotional awareness." },
-            { src: "WhatsAppImage2026-08-18at9.38.34PM.jpeg", alt: "Students listening during a mental well-being session", caption: "Making space to listen, reflect, and feel understood." },
-            { src: "Screenshot2026-08-19200805.png", alt: "A facilitator speaking at a supportive group gathering", caption: "Learning together in a welcoming group setting." }
+            { src: "mind1.jpeg", alt: "Mental well-being workshop with a mentor speaking to students", caption: "A guided conversation about feelings and emotional awareness." },
+            { src: "mind2.jpeg", alt: "Students listening during a mental well-being session", caption: "Making space to listen, reflect, and feel understood." },
         ]
     },
     yoga: {
@@ -1437,7 +1436,7 @@ const communityRoomContent = {
         icon: "ॐ",
         theme: "room-yoga",
         title: "Yoga Class",
-        mentor: "Vikas Sir",
+        mentor: "Mr. Vikas Sir",
         intro: "A calm movement room where breath, posture, and body awareness come together to support balance and steadiness.",
         focus: "Today’s focus: Breathing into space and ease",
         activities: [
@@ -1447,10 +1446,10 @@ const communityRoomContent = {
         ],
         takeaway: "Yoga is not a competition with your body. It is a conversation with it.",
         images: [
-            { src: "WhatsAppImage2026-08-19at7.00.46AM.jpeg", alt: "A group practising movement together in a green outdoor space", caption: "Movement, energy, and connection in the open air." },
-            { src: "WhatsAppImage2026-08-19at7.00.46AM(1).jpeg", alt: "A group doing balance exercises outdoors", caption: "Building balance with patience and playfulness." },
-            { src: "WhatsAppImage2026-08-19at6.59.07AM.jpeg", alt: "A large group following a guided outdoor exercise", caption: "Every body can find a comfortable way to participate." },
-            { src: "WhatsAppImage2026-08-19at7.00.46AM(2).jpeg", alt: "People moving together during an outdoor wellness activity", caption: "A shared rhythm makes practice feel lighter." }
+            { src: "yoga1.jpeg", alt: "A group practising movement together in a green outdoor space", caption: "Movement, energy, and connection in the open air." },
+            { src: "yoga2.jpeg", alt: "A group doing balance exercises outdoors", caption: "Building balance with patience and playfulness." },
+            { src: "yoga3.jpeg", alt: "A large group following a guided outdoor exercise", caption: "Every body can find a comfortable way to participate." },
+            { src: "yoga4.jpeg", alt: "People moving together during an outdoor wellness activity", caption: "A shared rhythm makes practice feel lighter." }
         ]
     },
     art: {
@@ -1458,7 +1457,7 @@ const communityRoomContent = {
         icon: "✎",
         theme: "room-art",
         title: "Art Class",
-        mentor: "Kanupriya Maam",
+        mentor: "Ms. Kanupriya Maam",
         intro: "A playful creative room where colour, shape, and texture help you express what words may not yet be ready to say.",
         focus: "Today’s focus: Turning an emotion into an image",
         activities: [
@@ -1468,9 +1467,9 @@ const communityRoomContent = {
         ],
         takeaway: "There is no wrong way to create when the purpose is to listen to yourself.",
         images: [
-            { src: "WhatsAppImage2026-08-18at4.27.24PM(1).jpeg", alt: "A creative group proudly holding decorated art frames", caption: "Celebrating the joy of making something personal." },
-            { src: "WhatsAppImage2026-08-18at4.27.24PM.jpeg", alt: "A colourful group workshop display on a stage", caption: "Colour, collaboration, and confidence in the creative room." },
-            { src: "WhatsAppImage2026-08-18at4.27.35PM.webp", alt: "A colourful collection of decorative nutcracker figures", caption: "Finding inspiration in texture, colour, and playful details." }
+            { src: "art1.jpeg", alt: "A creative group proudly holding decorated art frames", caption: "Celebrating the joy of making something personal." },
+            { src: "art2.jpeg", alt: "A colourful group workshop display on a stage", caption: "Colour, collaboration, and confidence in the creative room." },
+            { src: "art3.jpeg", alt: "A colourful collection of decorative nutcracker figures", caption: "Finding inspiration in texture, colour, and playful details." }
         ]
     }
 };
