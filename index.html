@@ -305,7 +305,6 @@
                 <div class="card interactive-card">
                     <h2>Welcome to Your Safe Space</h2>
                     <p style="margin-bottom: 15px;">MindMappers is dedicated to mental well-being, mindfulness, and healthy tracking interfaces. Take control of your daily mental health architecture through customized widgets built for clarity, balance, and alignment.</p>
-                     <p style="margin-bottom: 15px;">Our Mascot, Mr. Mindey, is the main inspiration and spotlight for our project.</p>
                     
                     <!-- ANIMATED INTERACTIVE NEURAL BRAIN DISPLAY -->
                     <div class="brain-hero-wrapper">
@@ -392,12 +391,6 @@
                         <span class="welcome-encouragement-mark">“</span>
                         <p>You do not have to solve everything today. You only have to meet this moment with a little more awareness and a little more kindness.</p>
                     </div>
-
-                    <div class="welcome-encouragement">
-                        <span class="welcome-encouragement-mark">“</span>
-                        <p>Sanskrit Shloka for Mental Well Being :- <br> <br> चित्ते प्रसन्ने भुवनं प्रसन्नं चित्ते विषण्णे भुवनं विषण्णम्।<br>अतोऽभिलाषो यदि ते सुखे स्यात् चित्तप्रसादे प्रथमं यतस्व|| <br> <br>
-                        Meaning :- If your mind is joyful, the whole world looks joyful. If your mind is sad, the world looks sad. If you want happiness, first work on calming and pleasing your mind.</p>
-                    </div>  
                     
                     <div style="margin-top: 30px; text-align: center;">
                         <button class="btn accent-btn" onclick="generateAffirmation()">Receive Daily Affirmation ✨</button>
@@ -446,24 +439,168 @@
                     <p id="mood-status" style="text-align:center; margin-top:15px; font-weight:500; color:#10b981; min-height:24px; transition: opacity 0.2s ease;"></p>
                     <p id="mood-limit-notice" class="mood-limit-notice" role="status" aria-live="polite"></p>
 
+                    <!-- Daily Suggestions & Mood-Based Music -->
+                    <div class="services-feature-grid" aria-label="Personalized daily wellness features">
+                        <article class="services-feature-card daily-suggestion-card">
+                            <div class="services-feature-icon">🌤️</div>
+                            <div class="services-feature-heading">
+                                <span class="services-feature-eyebrow">TODAY'S GENTLE NUDGE</span>
+                                <h3 id="daily-suggestion-title">A small moment for yourself</h3>
+                            </div>
+                            <p id="daily-suggestion-text">Log your mood to receive a suggestion that matches the energy you are carrying today.</p>
+                            <div class="services-feature-action-row">
+                                <span id="daily-suggestion-mood" class="feature-mood-tag">Ready when you are</span>
+                                <button class="feature-link-btn" type="button" onclick="refreshDailyWellnessFeatures()">Refresh ↻</button>
+                            </div>
+                        </article>
+
+                        <article class="services-feature-card mood-music-card">
+                            <div class="services-feature-icon">🎧</div>
+                            <div class="services-feature-heading">
+                                <span class="services-feature-eyebrow">MOOD-MATCHED MUSIC</span>
+                                <h3 id="mood-music-title">Let sound meet you where you are</h3>
+                            </div>
+                            <p id="mood-music-text">Choose a mood above and we will suggest a listening direction for your next pause.</p>
+                            <div class="music-track-preview">
+                                <span id="mood-music-emoji">🎶</span>
+                                <div><strong id="mood-music-track">Your calm playlist awaits</strong><small id="mood-music-style">Ambient · instrumental · unhurried</small></div>
+                            </div>
+                            <div class="music-controls" aria-label="Background music controls">
+                                <button id="soundscape-toggle" class="soundscape-btn" type="button" onclick="toggleMoodSoundscape()">▶ Start soundscape</button>
+                                <button id="soundscape-stop" class="soundscape-stop-btn" type="button" onclick="stopMoodSoundscape()" disabled>Stop</button>
+                            </div>
+                            <p id="soundscape-status" class="soundscape-status">Tap Start to play a gentle mood-based background soundscape.</p>
+                            <a id="mood-music-link" class="feature-link-btn music-link" href="https://www.youtube.com/results?search_query=calm+instrumental+music" target="_blank" rel="noopener noreferrer">Open listening ideas ↗</a>
+                        </article>
+                    </div>
+
+                    <!-- Mood-Based Activities & Stress-Relief Game -->
+                    <div class="activities-panel">
+                        <div class="activities-panel-heading">
+                            <div><span class="services-feature-eyebrow">PLAYFUL PAUSES</span><h3>Activities for your current mood</h3></div>
+                            <span class="activity-spark">✦</span>
+                        </div>
+                        <p id="activities-intro" class="activities-intro">Log your mood to unlock a small activity and a calming game designed for this moment.</p>
+                        <div id="mood-activities-list" class="mood-activities-list"></div>
+                        <div class="stress-game-card">
+                            <div><span class="game-kicker">60-SECOND RESET</span><h4>Catch the Calm</h4><p>Tap the glowing circle as it moves. Each tap is a reminder to return to the present.</p></div>
+                            <div class="game-score-line"><span>Calm taps <strong id="calm-game-score">0</strong></span><button id="calm-game-start" class="feature-link-btn" type="button" onclick="startCalmGame()">Start game</button></div>
+                            <div id="calm-game-board" class="calm-game-board" aria-label="Catch the Calm game board"><button id="calm-game-target" class="calm-game-target" type="button" onclick="catchCalmTarget()" aria-label="Catch the glowing calm target"></button><span id="calm-game-message">Take one slow breath, then start.</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Wellness Toolkit -->
+                    <div class="wellness-toolkit" aria-label="Mindfulness wellness toolkit">
+                        <div class="toolkit-heading">
+                            <div><span class="services-feature-eyebrow">YOUR MINI TOOLKIT</span><h3>Small practices for right now</h3></div>
+                            <span id="toolkit-mood-label" class="toolkit-mood-label">Personalized gently</span>
+                        </div>
+                        <div id="toolkit-home" class="toolkit-home">
+                            <p class="toolkit-home-intro">Choose one focused practice. Each activity opens in its own calm sub-page so you can concentrate without distractions.</p>
+                            <div class="toolkit-menu-grid">
+                                <button class="toolkit-menu-card" type="button" onclick="openServiceSubpage('breathing-tool-page')"><span>🌬️</span><strong>Box breathing</strong><small>60-second guided rhythm</small></button>
+                                <button class="toolkit-menu-card" type="button" onclick="openServiceSubpage('gratitude-tool-page')"><span>📝</span><strong>Gratitude pocket</strong><small>Write a private reflection</small></button>
+                                <button class="toolkit-menu-card" type="button" onclick="openServiceSubpage('focus-tool-page')"><span>⏳</span><strong>Focus reset</strong><small>Take a two-minute pause</small></button>
+                                <button class="toolkit-menu-card" type="button" onclick="openServiceSubpage('sensory-tool-page')"><span>🌿</span><strong>Sense reset</strong><small>Reconnect with the present</small></button>
+                            </div>
+                        </div>
+                        <div class="toolkit-grid">
+                            <article id="breathing-tool-page" class="toolkit-card service-subpage-card breathing-tool-card">
+                                <span class="toolkit-icon">🌬️</span><h4>Box breathing</h4>
+                                <p id="breathing-tool-text">Inhale, hold, exhale, and pause with a simple guided rhythm.</p>
+                                <div class="breathing-orb" id="breathing-orb"><span id="breathing-phase">Ready</span></div>
+                                <button id="breathing-tool-btn" class="toolkit-btn" type="button" onclick="startBreathingActivity()">Start 60-second breath</button>
+                                <button class="toolkit-back-btn" type="button" onclick="closeServiceSubpage()">← Back to toolkit</button>
+                            </article>
+                            <article id="gratitude-tool-page" class="toolkit-card service-subpage-card gratitude-tool-card">
+                                <span class="toolkit-icon">📝</span><h4>Gratitude pocket</h4>
+                                <p id="gratitude-prompt">What is one small thing that made today a little easier?</p>
+                                <textarea id="gratitude-note" class="toolkit-textarea" rows="2" placeholder="Write one gentle sentence..."></textarea>
+                                <button class="toolkit-btn" type="button" onclick="saveGratitudeNote()">Save reflection</button>
+                                <button class="toolkit-text-btn" type="button" onclick="showGratitudePrompt()">New prompt ↻</button>
+                                <button class="toolkit-back-btn" type="button" onclick="closeServiceSubpage()">← Back to toolkit</button>
+                            </article>
+                            <article id="focus-tool-page" class="toolkit-card service-subpage-card focus-tool-card">
+                                <span class="toolkit-icon">⏳</span><h4>Focus reset</h4>
+                                <p>Take a short screen break and return to one meaningful next step.</p>
+                                <div id="focus-reset-clock" class="focus-reset-clock">02:00</div>
+                                <button id="focus-reset-btn" class="toolkit-btn" type="button" onclick="startFocusReset()">Start 2-minute reset</button>
+                                <button class="toolkit-back-btn" type="button" onclick="closeServiceSubpage()">← Back to toolkit</button>
+                            </article>
+                            <article id="sensory-tool-page" class="toolkit-card service-subpage-card sensory-tool-card">
+                                <span class="toolkit-icon">🌿</span><h4>Sense reset</h4>
+                                <p>Use your surroundings to reconnect with the present moment.</p>
+                                <div class="sense-checklist"><label><input type="checkbox"> See 5 things</label><label><input type="checkbox"> Feel 4 textures</label><label><input type="checkbox"> Hear 3 sounds</label></div>
+                                <button class="toolkit-back-btn" type="button" onclick="closeServiceSubpage()">← Back to toolkit</button>
+                            </article>
+                        </div>
+                    </div>
+
                     <!-- Weekly Report & Suggestions -->
                     <div style="margin-top: 30px; border-top: 1px dashed #cbd5e1; padding-top: 25px; text-align: center;">
-                        <button class="btn accent-btn" onclick="generateWeeklyMoodReport()">Generate Weekly Report & Suggestions 📊</button>
+                        <button class="btn accent-btn" onclick="generateWeeklyMoodReport()">Generate 7-Day Report & Insights 📊</button>
+                        <button class="btn demo-report-btn" onclick="generateDemoWeeklyMoodReport()">View Demo Report 🧪</button>
+                        <p class="demo-report-note">The demo uses sample data only and does not save anything to Firebase.</p>
                     </div>
 
                     <div id="weekly-report-container" style="display: none; margin-top: 25px; padding: 25px; background: #f8fafc; border-radius: 12px; border: 1px solid #cbd5e1; text-align: left;">
-                        <h3 style="color: var(--primary-dark); margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                            📈 Your Weekly Mood Summary
-                        </h3>
+                        <div class="report-header-row">
+                            <h3 style="color: var(--primary-dark); margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">📈 Your Weekly Mood Summary</h3>
+                            <button class="report-download-btn" type="button" onclick="downloadCurrentWeeklyReport()">⬇ Download Designed PDF</button>
+                        </div>
                         <p id="report-date-range" style="font-size: 0.85rem; color: #64748b; margin-bottom: 15px;"></p>
 
                         <div id="mood-breakdown-stats" style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 20px;"></div>
+
+                        <div id="report-overview-grid" class="report-overview-grid"></div>
+
+                        <div class="report-chart-card">
+                            <div class="report-section-heading"><h4>📊 Mood pattern at a glance</h4><span>Past 7 days</span></div>
+                            <div id="mood-weekly-chart" class="mood-weekly-chart" role="img" aria-label="Weekly mood distribution chart"></div>
+                        </div>
 
                         <div style="background: #ffffff; padding: 18px; border-radius: 10px; border-left: 4px solid #4facfe; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">
                             <h4 style="color: #1e293b; margin-bottom: 8px;">💡 Personalized Wellness Suggestions</h4>
                             <p id="weekly-suggestions-text" style="color: #475569; font-size: 0.95rem; line-height: 1.6;"></p>
                         </div>
+
+                        <div class="report-activities-card">
+                            <div class="report-section-heading"><h4>🌱 Short activities for this week</h4><span>Choose one</span></div>
+                            <div id="report-activity-list" class="report-activity-list"></div>
+                        </div>
+
+                        <div class="report-complete-row">
+                            <p>One small step is enough to begin.</p>
+                            <button class="btn report-close-btn" type="button" onclick="closeWeeklyReport()">I will do it ✓</button>
+                        </div>
                     </div>
+                    <div class="more-activities-launcher">
+                        <p>Want more ways to reset, reflect, and recharge?</p>
+                        <button class="btn more-activities-btn" type="button" onclick="showPage('activities-page')">Show More Activities ✦</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ADDITIONAL ACTIVITIES PAGE -->
+            <section id="activities-page" class="page-section">
+                <div class="card activities-page-shell">
+                    <button class="subpage-back-link" type="button" onclick="showPage('services-page')">← Back to Services</button>
+                    <div class="activities-page-hero"><span class="services-feature-eyebrow">YOUR ACTIVITY LIBRARY</span><h2>Choose a practice for this moment</h2><p>Open one activity at a time. There is no perfect way to do these; simply choose what feels supportive today.</p></div>
+                    <div class="activity-library-grid">
+                        <button class="activity-library-card" type="button" onclick="openActivityDetail('breathing')"><span>🌬️</span><strong>Calm Breathing</strong><small>A guided breathing rhythm for a softer nervous system.</small><em>Open activity →</em></button>
+                        <button class="activity-library-card" type="button" onclick="openActivityDetail('gratitude')"><span>📝</span><strong>Gratitude Pocket</strong><small>A private prompt to notice one good or steady thing.</small><em>Open activity →</em></button>
+                        <button class="activity-library-card" type="button" onclick="openActivityDetail('focus')"><span>⏳</span><strong>Focus Reset</strong><small>A short timer to clear the noise and choose one next step.</small><em>Open activity →</em></button>
+                        <button class="activity-library-card" type="button" onclick="openActivityDetail('grounding')"><span>🌿</span><strong>5-4-3-2-1 Grounding</strong><small>Use your senses to return gently to the present.</small><em>Open activity →</em></button>
+                        <button class="activity-library-card" type="button" onclick="openActivityDetail('movement')"><span>✨</span><strong>Mindful Movement</strong><small>A tiny stretch and movement break for your body.</small><em>Open activity →</em></button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- INDIVIDUAL ACTIVITY DETAIL PAGE -->
+            <section id="activity-detail-page" class="page-section">
+                <div class="card activity-detail-shell">
+                    <button class="subpage-back-link" type="button" onclick="showPage('activities-page')">← Back to Activities</button>
+                    <div id="activity-detail-content"></div>
                 </div>
             </section>
 
@@ -575,7 +712,7 @@
 
                     <div id="community-room-view" class="community-room-view" style="display:none;" aria-live="polite">
                         <div class="community-room-view-top">
-                            <button type="button" class="room-back-btn" onclick="closeCommunityRoom()">← Back to all classes</button>
+                            <button type="button" class="room-back-btn" onclick="closeCommunityRoom()">← Back to all rooms</button>
                             <span id="community-room-label" class="room-live-label">INNER CIRCLE ROOM</span>
                         </div>
                         <div id="community-room-content"></div>
@@ -591,7 +728,7 @@
                 <div class="card functional-card" id="staff-registrations-dashboard" style="margin-top: 35px; display: none; border: 2px solid #2563eb;">
                     <div class="staff-desk-heading">
                         <div class="staff-desk-title-row"><span class="staff-desk-icon">📋</span><div><h3>Staff Desk: Community Applications Queue</h3><p>Review new members thoughtfully and help each person find the right room.</p></div></div>
-                        <span class="staff-queue-badge">Pending Reviews</span>
+                        <span class="staff-queue-badge">Pending review</span>
                     </div>
                     <div id="master-applications-list">
                         <p style="text-align: center; color: #94a3b8; font-style: italic;">Loading applications list...</p>
@@ -779,29 +916,24 @@
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td>Nishu Mangla</td>
-                                    <td>+91 9867345910</td>
-                                    <td>mindey.support@gmail.com</td>
-                                </tr>
-                                <tr>
-                                    <td>Naksh Saluja</td>
-                                    <td>+91 9867345910</td>
-                                    <td>mindey.support@gmail.com</td>
+                                    <td>Aishani Tewari</td>
+                                    <td>+1 (555) 019-2831</td>
+                                    <td>aishani.t@mindey.org</td>
                                 </tr>
                                 <tr>
                                     <td>Anvesha Kaushik</td>
-                                    <td>+91 9867345910</td>
-                                    <td>mindey.support@gmail.com</td>
+                                    <td>+1 (555) 014-9922</td>
+                                    <td>anvesha.k@mindey.org</td>
                                 </tr>
                                 <tr>
-                                    <td>Aishani Tewari</td>
-                                    <td>+91 9867345910</td>
-                                    <td>mindey.support@gmail.com</td>
+                                    <td>Naksh Saluja</td>
+                                    <td>+1 (555) 012-7741</td>
+                                    <td>naksh.s@mindey.org</td>
                                 </tr>
                                 <tr>
                                     <td>Vivaan Yadav</td>
-                                    <td>+91 9867345910</td>
-                                    <td>mindey.support@gmail.com</td>
+                                    <td>+1 (555) 015-6610</td>
+                                    <td>vivaan.y@mindey.org</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -861,6 +993,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

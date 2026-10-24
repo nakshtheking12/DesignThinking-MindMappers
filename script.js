@@ -233,6 +233,7 @@ firebase.auth().onAuthStateChanged((user) => {
                 routeTicketSystemView();
                 renderInventoryList(userData.inventory || []);
                 refreshTodayMoodStatus(user);
+                refreshDailyWellnessFeatures(user);
                 refreshCoinRewardButtons(userData);
             }
         });
@@ -371,6 +372,362 @@ function showTodayMoodState(moodValue) {
     if (limitNotice) limitNotice.innerText = 'You have completed today\'s mood check-in. Come back tomorrow to log a new mood.';
 }
 
+const dailyWellnessLibrary = {
+    'Wonderful 😊': { suggestionTitle: 'Carry the good feeling forward', suggestion: 'Name one thing that helped you feel wonderful today, then make a little room for it again tomorrow.', musicTitle: 'Bright morning acoustics', musicStyle: 'Acoustic · feel-good · light', musicEmoji: '🌞', musicSearch: 'uplifting acoustic feel good playlist' },
+    'Neutral 😐': { suggestionTitle: 'Let neutral be enough', suggestion: 'Try a two-minute check-in: notice your breath, relax your shoulders, and choose one uncomplicated next step.', musicTitle: 'A steady focus flow', musicStyle: 'Lo-fi · soft beats · focus', musicEmoji: '🌿', musicSearch: 'lofi focus music no lyrics' },
+    'Stressed 😓': { suggestionTitle: 'Make the next minute softer', suggestion: 'Unclench your jaw, take four slower breaths, and step away from one source of noise if you can.', musicTitle: 'A quiet exhale', musicStyle: 'Piano · slow ambient · restorative', musicEmoji: '🌊', musicSearch: 'calm piano music stress relief' },
+    'Calm 😌': { suggestionTitle: 'Protect this pocket of calm', suggestion: 'Keep your calm close by writing down one thought you do not need to solve right now.', musicTitle: 'Still water soundscape', musicStyle: 'Nature · ambient · spacious', musicEmoji: '🪷', musicSearch: 'peaceful nature ambient music' },
+    'Happy 😄': { suggestionTitle: 'Share a little brightness', suggestion: 'Send a kind message or notice one small detail that made you smile. Joy grows when it is witnessed.', musicTitle: 'A sunny little reset', musicStyle: 'Indie pop · warm · upbeat', musicEmoji: '✨', musicSearch: 'happy feel good indie playlist' },
+    'Low 😔': { suggestionTitle: 'Choose care over pressure', suggestion: 'Drink some water, do one gentle stretch, and let today be measured by kindness rather than productivity.', musicTitle: 'A gentle companion', musicStyle: 'Soft guitar · comforting · slow', musicEmoji: '🤍', musicSearch: 'comforting gentle acoustic music' },
+    'Anxious 😟': { suggestionTitle: 'Return to what is here', suggestion: 'Name five things you can see, four you can feel, and one breath you can make a little longer.', musicTitle: 'Grounding frequencies', musicStyle: 'Binaural · minimal · slow', musicEmoji: '🌙', musicSearch: 'grounding meditation music anxiety relief' },
+    'Energized ⚡': { suggestionTitle: 'Give your energy a direction', suggestion: 'Pick one meaningful task for the next 15 minutes, then pause before deciding what comes next.', musicTitle: 'Intentional momentum', musicStyle: 'Instrumental · rhythmic · focused', musicEmoji: '⚡', musicSearch: 'energizing instrumental focus music' },
+    'Grateful 🙏': { suggestionTitle: 'Turn gratitude into an anchor', suggestion: 'Write one specific detail you appreciated today. Specific memories become places you can return to.', musicTitle: 'A thankful pause', musicStyle: 'Meditative · piano · warm', musicEmoji: '🌸', musicSearch: 'peaceful gratitude meditation music' }
+};
+
+const moodActivityLibrary = {
+    'Wonderful 😊': ['Write down what made today feel good', 'Share one kind message with someone', 'Take a joyful 5-minute movement break'],
+    'Neutral 😐': ['Try a three-minute mindful stretch', 'Make a warm drink without multitasking', 'Choose one simple task to finish'],
+    'Stressed 😓': ['Do four slow breaths with a longer exhale', 'Relax your jaw and roll your shoulders', 'Take a screen-free water break'],
+    'Calm 😌': ['Sit quietly and notice five sounds', 'Write one thought you can release', 'Enjoy a slow walk without your phone'],
+    'Happy 😄': ['Capture one detail you want to remember', 'Move to one song that lifts you up', 'Send a small note of appreciation'],
+    'Low 😔': ['Drink water and do one gentle stretch', 'Wrap up in something comfortable', 'Read one encouraging reflection'],
+    'Anxious 😟': ['Name five things you can see', 'Press both feet into the floor for 20 seconds', 'Breathe in for four and out for six'],
+    'Energized ⚡': ['Choose one meaningful 15-minute task', 'Turn your energy into a creative sketch', 'Pause and check what your body needs'],
+    'Grateful 🙏': ['Write three specific things you appreciate', 'Notice one person who helped you recently', 'Create a tiny gratitude voice note']
+};
+
+let moodAudioContext = null;
+let moodSoundscapeNodes = [];
+let moodSoundscapeTimer = null;
+let activeSoundscapeMood = '';
+let calmGameTimer = null;
+let calmGameScore = 0;
+
+function renderMoodActivities(moodValue) {
+    const list = document.getElementById('mood-activities-list');
+    const intro = document.getElementById('activities-intro');
+    if (!list) return;
+    const activities = moodActivityLibrary[moodValue] || ['Take three slow breaths and notice your shoulders', 'Write one sentence about how you feel', 'Stretch gently for two minutes'];
+    if (intro) intro.innerText = moodValue ? `Small, low-pressure ideas selected for your ${moodValue.toLowerCase()} check-in.` : 'Log your mood to unlock a small activity designed for this moment.';
+    list.innerHTML = activities.map((activity, index) => `<button class="activity-chip" type="button" onclick="completeMoodActivity(this)"><span>${['🌿', '🫶', '✨'][index]}</span>${activity}<strong>＋</strong></button>`).join('');
+}
+
+function completeMoodActivity(button) {
+    if (!button) return;
+    button.classList.toggle('activity-complete');
+    const marker = button.querySelector('strong');
+    if (marker) marker.innerText = button.classList.contains('activity-complete') ? '✓' : '＋';
+}
+
+let breathingActivityTimer = null;
+let breathingActivitySeconds = 0;
+let focusResetTimer = null;
+let focusResetSeconds = 120;
+const gratitudePrompts = [
+    'What is one small thing that made today a little easier?',
+    'Which person, place, or moment brought you a little comfort recently?',
+    'What is something your body did for you today that you appreciate?',
+    'What is one quiet detail you would like to remember from this week?'
+];
+
+function updateToolkitMood(moodValue) {
+    const label = document.getElementById('toolkit-mood-label');
+    if (label) label.innerText = moodValue ? `For ${moodValue}` : 'Personalized gently';
+}
+
+function openServiceSubpage(pageId) {
+    const home = document.getElementById('toolkit-home');
+    const pages = document.querySelectorAll('.service-subpage-card');
+    if (home) home.style.display = 'none';
+    pages.forEach((page) => page.classList.toggle('service-subpage-active', page.id === pageId));
+    const target = document.getElementById(pageId);
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function closeServiceSubpage() {
+    const home = document.getElementById('toolkit-home');
+    const pages = document.querySelectorAll('.service-subpage-card');
+    pages.forEach((page) => page.classList.remove('service-subpage-active'));
+    if (home) { home.style.display = 'block'; home.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+}
+
+const activityDetailLibrary = {
+    breathing: { icon: '🌬️', eyebrow: '60-SECOND RESET', title: 'Calm Breathing', text: 'Let your breath become a small anchor. Inhale gently, hold without strain, then make your exhale a little longer.', steps: ['Sit comfortably and soften your shoulders.', 'Follow four slow rounds of inhale, hold, exhale, and pause.', 'Notice one change in your body before you continue your day.'], action: 'Begin breathing practice' },
+    gratitude: { icon: '📝', eyebrow: 'PRIVATE REFLECTION', title: 'Gratitude Pocket', text: 'Gratitude does not have to be big. Capture one ordinary detail that gave you comfort, support, or a moment of ease.', steps: ['Choose one specific detail from today.', 'Write it in one honest sentence.', 'Read it once without judging how it sounds.'], action: 'Write my reflection' },
+    focus: { icon: '⏳', eyebrow: 'TWO-MINUTE RESET', title: 'Focus Reset', text: 'Step away from the noise for a moment, then return with one clear and kind next step.', steps: ['Put both feet on the floor.', 'Take two quiet minutes without switching tasks.', 'Choose one small thing to do next.'], action: 'Start focus reset' },
+    grounding: { icon: '🌿', eyebrow: 'SENSORY ANCHOR', title: '5-4-3-2-1 Grounding', text: 'Use your senses as a gentle map back to the present moment, especially when thoughts feel loud or scattered.', steps: ['Name five things you can see.', 'Notice four textures, three sounds, two scents, and one taste.', 'Take one slow breath and look around again.'], action: 'Begin grounding' },
+    movement: { icon: '✨', eyebrow: 'GENTLE ENERGY', title: 'Mindful Movement', text: 'Give your body a little space with a slow, pressure-free movement break.', steps: ['Roll your shoulders three times.', 'Stretch your arms upward and release them slowly.', 'Walk or sway for one song while noticing your breath.'], action: 'Start movement pause' }
+};
+
+function openActivityDetail(activityKey) {
+    const activity = activityDetailLibrary[activityKey] || activityDetailLibrary.breathing;
+    const content = document.getElementById('activity-detail-content');
+    if (!content) return;
+    content.innerHTML = `<div class="activity-detail-hero"><span class="activity-detail-icon">${activity.icon}</span><span class="services-feature-eyebrow">${activity.eyebrow}</span><h2>${activity.title}</h2><p>${activity.text}</p></div><div class="activity-detail-body"><h3>A gentle way to begin</h3><ol>${activity.steps.map((step) => `<li>${step}</li>`).join('')}</ol><div id="activity-detail-feedback" class="activity-detail-feedback">When you are ready, begin below.</div><button class="btn activity-detail-action" type="button" onclick="startActivityDetailSession('${activityKey}')">${activity.action} ✓</button></div>`;
+    if (activityKey === 'focus') {
+        const actionButton = content.querySelector('.activity-detail-action');
+        if (actionButton) {
+            actionButton.insertAdjacentHTML('beforebegin', '<div id="detail-focus-clock" class="activity-detail-timer">02:00</div>');
+            actionButton.setAttribute('onclick', 'startDetailedFocusTimer()');
+        }
+    }
+    if (activityKey === 'breathing') {
+        const actionButton = content.querySelector('.activity-detail-action');
+        if (actionButton) { actionButton.insertAdjacentHTML('beforebegin', '<div id="detail-breath-orb" class="activity-detail-breath-orb"><span id="detail-breath-clock">60s · Ready</span></div>'); actionButton.setAttribute('onclick', 'startDetailedBreathingTimer()'); }
+    }
+    if (activityKey === 'gratitude') {
+        const actionButton = content.querySelector('.activity-detail-action');
+        if (actionButton) { actionButton.insertAdjacentHTML('beforebegin', '<div class="detail-reflection-box"><p id="detail-gratitude-prompt">What is one small thing that made today a little easier?</p><textarea id="detail-gratitude-note" rows="3" placeholder="Write one gentle sentence..."></textarea><button class="toolkit-text-btn" type="button" onclick="showDetailGratitudePrompt()">New prompt ↻</button></div>'); actionButton.setAttribute('onclick', 'saveDetailGratitudeNote()'); }
+    }
+    if (activityKey === 'grounding') {
+        const actionButton = content.querySelector('.activity-detail-action');
+        if (actionButton) { actionButton.insertAdjacentHTML('beforebegin', '<div class="detail-grounding-checklist"><label><input type="checkbox"> I can see 5 things</label><label><input type="checkbox"> I can feel 4 textures</label><label><input type="checkbox"> I can hear 3 sounds</label><label><input type="checkbox"> I can notice 2 scents</label><label><input type="checkbox"> I can name 1 taste</label></div>'); actionButton.setAttribute('onclick', 'completeDetailGrounding()'); }
+    }
+    showPage('activity-detail-page');
+}
+
+let detailedFocusTimer = null;
+let detailedFocusSeconds = 120;
+let detailedBreathingTimer = null;
+let detailedBreathingSeconds = 60;
+
+function startDetailedFocusTimer() {
+    const clock = document.getElementById('detail-focus-clock');
+    const feedback = document.getElementById('activity-detail-feedback');
+    const button = document.querySelector('.activity-detail-action');
+    if (!clock || !button) return;
+    if (detailedFocusTimer) {
+        window.clearInterval(detailedFocusTimer);
+        detailedFocusTimer = null;
+        detailedFocusSeconds = 120;
+        clock.innerText = '02:00';
+        button.innerText = 'Start focus reset ✓';
+        if (feedback) feedback.innerText = 'The reset is paused. Begin again whenever you are ready.';
+        return;
+    }
+    detailedFocusSeconds = 120;
+    button.innerText = 'Stop focus reset';
+    if (feedback) feedback.innerText = 'The timer is running. Let these two minutes stay simple.';
+    detailedFocusTimer = window.setInterval(() => {
+        detailedFocusSeconds -= 1;
+        const minutes = String(Math.floor(detailedFocusSeconds / 60)).padStart(2, '0');
+        const seconds = String(detailedFocusSeconds % 60).padStart(2, '0');
+        clock.innerText = `${minutes}:${seconds}`;
+        if (detailedFocusSeconds <= 0) {
+            window.clearInterval(detailedFocusTimer);
+            detailedFocusTimer = null;
+            clock.innerText = 'Done ✦';
+            button.innerText = 'Start again';
+            if (feedback) feedback.innerText = 'You completed your focus reset. Choose one kind next step.';
+        }
+    }, 1000);
+}
+
+function startDetailedBreathingTimer() {
+    const clock = document.getElementById('detail-breath-clock');
+    const orb = document.getElementById('detail-breath-orb');
+    const feedback = document.getElementById('activity-detail-feedback');
+    const button = document.querySelector('.activity-detail-action');
+    if (!clock || !button) return;
+    if (detailedBreathingTimer) {
+        window.clearInterval(detailedBreathingTimer); detailedBreathingTimer = null; detailedBreathingSeconds = 60;
+        clock.innerText = '60s · Ready'; if (orb) orb.className = 'activity-detail-breath-orb'; button.innerText = 'Begin breathing practice ✓';
+        if (feedback) feedback.innerText = 'The practice is paused. Begin again when you are ready.'; return;
+    }
+    button.innerText = 'Stop breathing practice';
+    if (feedback) feedback.innerText = 'Follow the circle gently. Do not force your breath.';
+    const tick = () => {
+        const elapsed = 60 - detailedBreathingSeconds; const cycle = elapsed % 16;
+        let label = 'Exhale'; let className = 'activity-detail-breath-orb detail-breath-exhale';
+        if (cycle < 4) { label = 'Inhale'; className = 'activity-detail-breath-orb detail-breath-inhale'; }
+        else if (cycle < 8) { label = 'Hold'; className = 'activity-detail-breath-orb detail-breath-hold'; }
+        else if (cycle >= 14) { label = 'Pause'; className = 'activity-detail-breath-orb detail-breath-pause'; }
+        clock.innerText = `${detailedBreathingSeconds}s · ${label}`; if (orb) orb.className = className;
+        if (detailedBreathingSeconds <= 0) { window.clearInterval(detailedBreathingTimer); detailedBreathingTimer = null; clock.innerText = 'Complete ✦'; button.innerText = 'Start again'; if (feedback) feedback.innerText = 'Beautiful. Notice one change in your body before continuing.'; }
+        detailedBreathingSeconds -= 1;
+    };
+    tick(); detailedBreathingTimer = window.setInterval(tick, 1000);
+}
+
+function showDetailGratitudePrompt() {
+    const prompt = document.getElementById('detail-gratitude-prompt');
+    if (prompt) prompt.innerText = gratitudePrompts[Math.floor(Math.random() * gratitudePrompts.length)];
+}
+
+function saveDetailGratitudeNote() {
+    const note = document.getElementById('detail-gratitude-note'); const feedback = document.getElementById('activity-detail-feedback');
+    if (!note || !note.value.trim()) { if (feedback) feedback.innerText = 'Write one gentle sentence before saving your reflection.'; return; }
+    try { localStorage.setItem(`mindmappers_gratitude_${getLocalDateKey()}`, note.value.trim()); } catch (error) { console.warn('Local reflection could not be saved.'); }
+    note.value = ''; if (feedback) feedback.innerText = 'Your reflection was saved privately on this device. Thank yourself for noticing. ✨';
+}
+
+function completeDetailGrounding() {
+    const checks = [...document.querySelectorAll('.detail-grounding-checklist input')]; const feedback = document.getElementById('activity-detail-feedback');
+    if (checks.length && checks.every((check) => check.checked)) { if (feedback) feedback.innerText = 'You completed the sensory anchor. Take one slow breath and notice the room around you.'; }
+    else if (feedback) feedback.innerText = `You have noticed ${checks.filter((check) => check.checked).length} of 5 anchors. Continue gently.`;
+}
+
+function startActivityDetailSession(activityKey) {
+    const feedback = document.getElementById('activity-detail-feedback');
+    const button = document.querySelector('.activity-detail-action');
+    const messages = { breathing: 'Start with a quiet inhale. You are allowed to take this slowly.', gratitude: 'Your reflection is yours. Write one sentence that feels true.', focus: 'The reset has started. Let the next two minutes stay uncomplicated.', grounding: 'Look around and name the first thing you can see.', movement: 'Begin with one shoulder roll. Small movement counts.' };
+    if (feedback) feedback.innerText = messages[activityKey] || 'You have begun. Stay with this moment.';
+    if (button) { button.innerText = 'Activity started ✓'; button.classList.add('activity-started'); }
+}
+
+function startBreathingActivity() {
+    const button = document.getElementById('breathing-tool-btn');
+    const phase = document.getElementById('breathing-phase');
+    const orb = document.getElementById('breathing-orb');
+    const text = document.getElementById('breathing-tool-text');
+    if (breathingActivityTimer) { window.clearInterval(breathingActivityTimer); breathingActivityTimer = null; breathingActivitySeconds = 0; if (button) button.innerText = 'Start 60-second breath'; if (phase) phase.innerText = 'Ready'; if (orb) orb.className = 'breathing-orb'; if (text) text.innerText = 'Inhale, hold, exhale, and pause with a simple guided rhythm.'; return; }
+    breathingActivitySeconds = 60;
+    if (button) button.innerText = 'Stop breathing practice';
+    if (text) text.innerText = 'Follow the circle without forcing your breath.';
+    const tick = () => {
+        const elapsed = 60 - breathingActivitySeconds;
+        const cycle = elapsed % 16;
+        let label = 'Exhale', className = 'breathing-orb breathing-exhale';
+        if (cycle < 4) { label = 'Inhale'; className = 'breathing-orb breathing-inhale'; }
+        else if (cycle < 8) { label = 'Hold'; className = 'breathing-orb breathing-hold'; }
+        else if (cycle < 14) { label = 'Exhale'; className = 'breathing-orb breathing-exhale'; }
+        else { label = 'Pause'; className = 'breathing-orb breathing-pause'; }
+        if (phase) phase.innerText = `${label} · ${breathingActivitySeconds}s`;
+        if (orb) orb.className = className;
+        if (breathingActivitySeconds <= 0) { window.clearInterval(breathingActivityTimer); breathingActivityTimer = null; if (button) button.innerText = 'Start 60-second breath'; if (phase) phase.innerText = 'Complete ✦'; if (text) text.innerText = 'Beautiful. Notice how your body feels before moving on.'; }
+        breathingActivitySeconds -= 1;
+    };
+    tick();
+    breathingActivityTimer = window.setInterval(tick, 1000);
+}
+
+function showGratitudePrompt() {
+    const prompt = document.getElementById('gratitude-prompt');
+    if (prompt) prompt.innerText = gratitudePrompts[Math.floor(Math.random() * gratitudePrompts.length)];
+}
+
+function saveGratitudeNote() {
+    const note = document.getElementById('gratitude-note');
+    if (!note || !note.value.trim()) { alert('Write one gentle sentence before saving your reflection.'); return; }
+    try { localStorage.setItem(`mindmappers_gratitude_${getLocalDateKey()}`, note.value.trim()); } catch (error) { console.warn('Local reflection could not be saved.'); }
+    note.value = '';
+    const prompt = document.getElementById('gratitude-prompt');
+    if (prompt) prompt.innerText = 'Saved privately on this device. Thank yourself for noticing. ✨';
+}
+
+function startFocusReset() {
+    const clock = document.getElementById('focus-reset-clock');
+    const button = document.getElementById('focus-reset-btn');
+    if (focusResetTimer) { window.clearInterval(focusResetTimer); focusResetTimer = null; focusResetSeconds = 120; if (clock) clock.innerText = '02:00'; if (button) button.innerText = 'Start 2-minute reset'; return; }
+    focusResetSeconds = 120;
+    if (button) button.innerText = 'Stop reset';
+    focusResetTimer = window.setInterval(() => {
+        focusResetSeconds -= 1;
+        const minutes = String(Math.floor(focusResetSeconds / 60)).padStart(2, '0');
+        const seconds = String(focusResetSeconds % 60).padStart(2, '0');
+        if (clock) clock.innerText = `${minutes}:${seconds}`;
+        if (focusResetSeconds <= 0) { window.clearInterval(focusResetTimer); focusResetTimer = null; if (button) button.innerText = 'Start another reset'; if (clock) clock.innerText = 'Done ✦'; }
+    }, 1000);
+}
+
+function getSoundscapeMood() {
+    const moodTag = document.getElementById('daily-suggestion-mood');
+    return moodTag && moodTag.innerText.indexOf('For ') === 0 ? moodTag.innerText.slice(4) : '';
+}
+
+function startMoodSoundscape() {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) { const status = document.getElementById('soundscape-status'); if (status) status.innerText = 'Your browser does not support the soundscape player.'; return; }
+    if (moodAudioContext && moodAudioContext.state === 'running') { updateSoundscapeControls(true); return; }
+    if (moodAudioContext && moodAudioContext.state === 'suspended') { moodAudioContext.resume(); updateSoundscapeControls(true); return; }
+    moodAudioContext = moodAudioContext || new AudioContextClass();
+    moodAudioContext.resume();
+    const mood = getSoundscapeMood();
+    const settings = { 'Stressed 😓': [196, 261.63], 'Anxious 😟': [174.61, 233.08], 'Low 😔': [220, 293.66], 'Energized ⚡': [261.63, 329.63] }[mood] || [220, 277.18];
+    const master = moodAudioContext.createGain();
+    master.gain.setValueAtTime(0.0001, moodAudioContext.currentTime);
+    master.gain.exponentialRampToValueAtTime(0.055, moodAudioContext.currentTime + 2);
+    master.connect(moodAudioContext.destination);
+    moodSoundscapeNodes = [master];
+    settings.forEach((frequency, index) => { const oscillator = moodAudioContext.createOscillator(); const gain = moodAudioContext.createGain(); oscillator.type = index === 0 ? 'sine' : 'triangle'; oscillator.frequency.value = frequency; gain.gain.value = index === 0 ? 0.55 : 0.28; oscillator.connect(gain).connect(master); oscillator.start(); moodSoundscapeNodes.push(oscillator, gain); });
+    activeSoundscapeMood = mood;
+    moodSoundscapeTimer = window.setInterval(() => playSoundscapeNote(master, settings), 4300);
+    updateSoundscapeControls(true);
+}
+
+function playSoundscapeNote(master, settings) {
+    if (!moodAudioContext || moodAudioContext.state !== 'running') return;
+    const note = moodAudioContext.createOscillator(); const gain = moodAudioContext.createGain();
+    note.type = 'sine'; note.frequency.value = settings[Math.floor(Math.random() * settings.length)] * (Math.random() > 0.65 ? 2 : 1);
+    gain.gain.setValueAtTime(0.0001, moodAudioContext.currentTime); gain.gain.exponentialRampToValueAtTime(0.08, moodAudioContext.currentTime + 0.12); gain.gain.exponentialRampToValueAtTime(0.0001, moodAudioContext.currentTime + 2.2);
+    note.connect(gain).connect(master); note.start(); note.stop(moodAudioContext.currentTime + 2.3);
+}
+
+function toggleMoodSoundscape() { if (moodAudioContext && moodAudioContext.state === 'running') { moodAudioContext.suspend(); updateSoundscapeControls(false, true); } else startMoodSoundscape(); }
+
+function stopMoodSoundscape() {
+    if (moodSoundscapeTimer) window.clearInterval(moodSoundscapeTimer);
+    moodSoundscapeTimer = null;
+    moodSoundscapeNodes.forEach((node) => { try { if (node.stop) node.stop(); else node.disconnect(); } catch (error) {} });
+    moodSoundscapeNodes = [];
+    if (moodAudioContext) { moodAudioContext.close(); moodAudioContext = null; }
+    updateSoundscapeControls(false, false);
+}
+
+function updateSoundscapeControls(isPlaying, isPaused = false) {
+    const toggle = document.getElementById('soundscape-toggle'); const stop = document.getElementById('soundscape-stop'); const status = document.getElementById('soundscape-status');
+    if (toggle) toggle.innerText = isPlaying ? '❚❚ Pause soundscape' : (isPaused ? '▶ Resume soundscape' : '▶ Start soundscape');
+    if (stop) stop.disabled = !isPlaying && !isPaused;
+    if (status) status.innerText = isPlaying ? `Playing a gentle ${activeSoundscapeMood || 'mood-based'} soundscape. Use Pause or Stop whenever you like.` : (isPaused ? 'Soundscape paused. Resume when you are ready.' : 'Soundscape stopped. Tap Start to play it again.');
+}
+
+function startCalmGame() {
+    const target = document.getElementById('calm-game-target'); const message = document.getElementById('calm-game-message'); const start = document.getElementById('calm-game-start');
+    calmGameScore = 0; if (document.getElementById('calm-game-score')) document.getElementById('calm-game-score').innerText = '0';
+    if (start) start.innerText = 'Restart game'; if (message) message.innerText = 'Follow the glow. Breathe out as you tap.';
+    if (target) { target.style.display = 'block'; moveCalmTarget(); }
+    if (calmGameTimer) window.clearTimeout(calmGameTimer); calmGameTimer = window.setTimeout(endCalmGame, 60000);
+}
+
+function moveCalmTarget() { const board = document.getElementById('calm-game-board'); const target = document.getElementById('calm-game-target'); if (!board || !target) return; target.style.left = `${Math.floor(Math.random() * Math.max(1, board.clientWidth - 54))}px`; target.style.top = `${Math.floor(Math.random() * Math.max(1, board.clientHeight - 54))}px`; }
+function catchCalmTarget() { const target = document.getElementById('calm-game-target'); if (!target || target.style.display === 'none') return; calmGameScore += 1; const score = document.getElementById('calm-game-score'); if (score) score.innerText = String(calmGameScore); moveCalmTarget(); }
+function endCalmGame() { const target = document.getElementById('calm-game-target'); const message = document.getElementById('calm-game-message'); if (calmGameTimer) window.clearTimeout(calmGameTimer); calmGameTimer = null; if (target) target.style.display = 'none'; if (message) message.innerText = `Lovely work. You returned to the present ${calmGameScore} time${calmGameScore === 1 ? '' : 's'}.`; }
+
+function renderDailyWellnessFeatures(moodValue) {
+    const fallback = { suggestionTitle: 'Begin with a gentle check-in', suggestion: 'Choose the mood that feels closest to your experience and receive a small, personalized idea for the rest of your day.', musicTitle: 'Your calm playlist awaits', musicStyle: 'Ambient · instrumental · unhurried', musicEmoji: '🎶', musicSearch: 'calm instrumental music' };
+    const feature = dailyWellnessLibrary[moodValue] || fallback;
+    const suggestionTitle = document.getElementById('daily-suggestion-title');
+    const suggestionText = document.getElementById('daily-suggestion-text');
+    const suggestionMood = document.getElementById('daily-suggestion-mood');
+    const musicTitle = document.getElementById('mood-music-title');
+    const musicText = document.getElementById('mood-music-text');
+    const musicEmoji = document.getElementById('mood-music-emoji');
+    const musicTrack = document.getElementById('mood-music-track');
+    const musicStyle = document.getElementById('mood-music-style');
+    const musicLink = document.getElementById('mood-music-link');
+    if (suggestionTitle) suggestionTitle.innerText = feature.suggestionTitle;
+    if (suggestionText) suggestionText.innerText = feature.suggestion;
+    if (suggestionMood) suggestionMood.innerText = moodValue ? `For ${moodValue}` : 'Ready when you are';
+    if (musicTitle) musicTitle.innerText = feature.musicTitle;
+    if (musicText) musicText.innerText = moodValue ? `A listening direction selected for your ${moodValue.toLowerCase()} check-in.` : 'Choose a mood above and we will suggest a listening direction for your next pause.';
+    if (musicEmoji) musicEmoji.innerText = feature.musicEmoji;
+    if (musicTrack) musicTrack.innerText = feature.musicTitle;
+    if (musicStyle) musicStyle.innerText = feature.musicStyle;
+    if (musicLink) musicLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(feature.musicSearch)}`;
+    renderMoodActivities(moodValue);
+    updateToolkitMood(moodValue);
+}
+
+function refreshDailyWellnessFeatures(user = firebase.auth().currentUser) {
+    if (!user) { renderDailyWellnessFeatures(); return Promise.resolve(); }
+    return db.collection('moods').doc(`${user.uid}_${getLocalDateKey()}`).get().then((doc) => {
+        renderDailyWellnessFeatures(doc.exists ? doc.data().mood : '');
+    }).catch((error) => {
+        console.error('Error loading daily wellness features:', error);
+        renderDailyWellnessFeatures();
+    });
+}
+
 function refreshTodayMoodStatus(user = firebase.auth().currentUser) {
     const statusElement = document.getElementById('mood-status');
     const limitNotice = document.getElementById('mood-limit-notice');
@@ -447,11 +804,47 @@ function logMood(moodString) {
         if (limitNotice) limitNotice.innerText = 'Today\'s mood check-in is complete. Come back tomorrow for a new entry.';
         triggerBrainPulse(`Mood Tracked: ${moodString}`);
         showTodayMoodState(moodString);
+        renderDailyWellnessFeatures(moodString);
     }).catch((error) => {
         console.error('Firebase Mood Error: ', error);
         setMoodButtonsLocked(false);
         if (statusElement) statusElement.innerText = 'Unable to save your mood right now. Please try again.';
     });
+}
+
+function renderExpandedMoodReport(counts, totalLogs, isDemo = false) {
+    const overview = document.getElementById('report-overview-grid');
+    const chart = document.getElementById('mood-weekly-chart');
+    const activityList = document.getElementById('report-activity-list');
+    const moodStyles = {
+        'Wonderful 😊': { label: 'Wonderful', color: '#34d399' }, 'Neutral 😐': { label: 'Neutral', color: '#94a3b8' }, 'Stressed 😓': { label: 'Stressed', color: '#fb7185' },
+        'Calm 😌': { label: 'Calm', color: '#22d3ee' }, 'Happy 😄': { label: 'Happy', color: '#fbbf24' }, 'Low 😔': { label: 'Low', color: '#818cf8' },
+        'Anxious 😟': { label: 'Anxious', color: '#c084fc' }, 'Energized ⚡': { label: 'Energized', color: '#fb923c' }, 'Grateful 🙏': { label: 'Grateful', color: '#f472b6' }
+    };
+    const entries = Object.entries(counts).filter(([, count]) => count > 0);
+    const dominant = entries.slice().sort((a, b) => b[1] - a[1])[0];
+    const positiveCount = (counts['Wonderful 😊'] || 0) + (counts['Happy 😄'] || 0) + (counts['Grateful 🙏'] || 0) + (counts['Calm 😌'] || 0);
+    const positivePercent = totalLogs ? Math.round((positiveCount / totalLogs) * 100) : 0;
+    if (overview) overview.innerHTML = `
+        <div class="report-overview-item"><strong>${totalLogs}</strong><span>check-ins recorded</span></div>
+        <div class="report-overview-item"><strong>${positivePercent}%</strong><span>positive or calm days</span></div>
+        <div class="report-overview-item"><strong>${dominant ? (moodStyles[dominant[0]] || { label: 'Your main mood' }).label : 'No pattern yet'}</strong><span>most frequent mood${isDemo ? ' · demo' : ''}</span></div>
+    `;
+    if (chart) {
+        const maximum = Math.max(1, ...entries.map(([, count]) => count));
+        chart.innerHTML = entries.length ? entries.map(([mood, count]) => {
+            const style = moodStyles[mood] || { label: String(mood).trim().slice(0, 12), color: '#64748b' };
+            return `<div class="mood-chart-column"><span class="mood-chart-count">${count}</span><div class="mood-chart-bar" style="height:${Math.max(8, Math.round((count / maximum) * 112))}px;background:${style.color};" title="${style.label}: ${count}"></div><span class="mood-chart-label">${style.label}</span></div>`;
+        }).join('') : '<p class="report-empty-chart">Log more moods to see your pattern chart.</p>';
+    }
+    const activityByMood = {
+        'Stressed 😓': ['4 slow breaths', 'Shoulder release', 'Screen-free water break'], 'Anxious 😟': ['5-4-3-2-1 grounding', 'Feet-on-floor pause', 'Long-exhale breathing'],
+        'Low 😔': ['Gentle stretch', 'Comforting reflection', 'One kind message'], 'Energized ⚡': ['15-minute focus', 'Creative sketch', 'Mindful movement'],
+        'Wonderful 😊': ['Capture the moment', 'Share appreciation', 'Joyful movement'], 'Happy 😄': ['Save a happy detail', 'Dance to one song', 'Kindness note'],
+        'Calm 😌': ['Notice five sounds', 'Quiet walk', 'Release one thought'], 'Grateful 🙏': ['Three gratitudes', 'Thank-you note', 'Gratitude voice note'], 'Neutral 😐': ['Mindful stretch', 'Warm drink pause', 'One simple task']
+    };
+    const activities = activityByMood[dominant ? dominant[0] : 'Neutral 😐'] || activityByMood['Neutral 😐'];
+    if (activityList) activityList.innerHTML = activities.map((activity, index) => `<div class="report-activity-item"><strong>${['01', '02', '03'][index]} · ${activity}</strong>${['A quick reset you can complete in under two minutes.', 'A low-pressure way to support your current energy.', 'A small action that helps you return to yourself.'][index]}</div>`).join('');
 }
 
 function generateWeeklyMoodReport() {
@@ -482,6 +875,7 @@ function generateWeeklyMoodReport() {
 
             if (snapshot.empty) {
                 statsContainer.innerHTML = `<p style="color: #64748b; font-style: italic;">No mood logs recorded in the past 7 days. Log your daily moods above to see weekly insights!</p>`;
+                renderExpandedMoodReport({}, 0, false);
                 suggestionsText.innerText = "Start logging your mood daily to receive tailored weekly recommendations and track your mental well-being trends.";
                 return;
             }
@@ -513,6 +907,8 @@ function generateWeeklyMoodReport() {
                     📊 Total Entries: ${totalLogs}
                 </div>
             `;
+
+            renderExpandedMoodReport(counts, totalLogs, false);
 
             const wonderful = counts['Wonderful 😊'] || 0;
             const neutral = counts['Neutral 😐'] || 0;
@@ -571,6 +967,103 @@ function generateWeeklyMoodReport() {
             console.error("Error generating mood report:", error);
             alert("Could not load weekly mood report. Please try again.");
         });
+}
+
+function generateDemoWeeklyMoodReport() {
+    const reportContainer = document.getElementById('weekly-report-container');
+    const statsContainer = document.getElementById('mood-breakdown-stats');
+    const suggestionsText = document.getElementById('weekly-suggestions-text');
+    const dateRangeText = document.getElementById('report-date-range');
+    if (!reportContainer || !statsContainer || !suggestionsText || !dateRangeText) return;
+
+    reportContainer.style.display = 'block';
+    dateRangeText.innerText = 'DEMO REPORT · Sample week: Monday - Sunday';
+    statsContainer.innerHTML = `
+        <div class="demo-stat-card demo-stat-positive">😊 Wonderful: 2</div>
+        <div class="demo-stat-card demo-stat-calm">😌 Calm: 2</div>
+        <div class="demo-stat-card demo-stat-neutral">😐 Neutral: 1</div>
+        <div class="demo-stat-card demo-stat-stressed">😓 Stressed: 1</div>
+        <div class="demo-stat-card demo-stat-total">📊 Total Entries: 6</div>
+    `;
+    renderExpandedMoodReport({ 'Wonderful 😊': 2, 'Calm 😌': 2, 'Neutral 😐': 1, 'Stressed 😓': 1 }, 6, true);
+    suggestionsText.innerText = 'This sample week shows a mostly steady pattern with several calm and positive moments. Keep noticing what supports those moments, and use the Calm-Zone or a mood-matched activity when stress appears.';
+    reportContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function downloadCurrentWeeklyReport() {
+    const reportContainer = document.getElementById('weekly-report-container');
+    if (!reportContainer || reportContainer.style.display === 'none') {
+        alert('Please generate a weekly report before downloading it.');
+        return;
+    }
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+        alert('The designed PDF tool is still loading. Please try the download button again in a moment.');
+        return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
+    const pageWidth = 210;
+    const margin = 16;
+    const contentWidth = pageWidth - (margin * 2);
+    const colors = { navy: [15, 23, 42], blue: [36, 66, 118], cyan: [0, 168, 190], muted: [100, 116, 139], light: [241, 245, 249], green: [5, 150, 105], purple: [99, 75, 170] };
+    const addText = (text, x, y, size, color = colors.navy, options = {}) => { pdf.setFont('helvetica', options.bold ? 'bold' : 'normal'); pdf.setFontSize(size); pdf.setTextColor(...color); pdf.text(String(text || ''), x, y, options); };
+    const addWrapped = (text, x, y, width, size = 10, color = colors.muted, lineHeight = 5) => { pdf.setFont('helvetica', 'normal'); pdf.setFontSize(size); pdf.setTextColor(...color); const lines = pdf.splitTextToSize(String(text || ''), width); pdf.text(lines, x, y); return y + (lines.length * lineHeight); };
+    const roundedCard = (x, y, w, h, fill = colors.light, stroke = [226, 232, 240]) => { pdf.setFillColor(...fill); pdf.setDrawColor(...stroke); pdf.roundedRect(x, y, w, h, 4, 4, 'FD'); };
+
+    pdf.setFillColor(...colors.navy); pdf.rect(0, 0, pageWidth, 47, 'F');
+    pdf.setFillColor(...colors.cyan); pdf.circle(183, 12, 23, 'F');
+    addText('MINDMAPPERS', margin, 18, 21, [255, 255, 255], { bold: true });
+    addText('WEEKLY MOOD REPORT', margin, 29, 9, [165, 243, 252], { bold: true });
+    addText('Seek the Inner Self', margin, 38, 8, [203, 213, 225]);
+    addText('✦', 178, 19, 18, [15, 23, 42], { bold: true });
+
+    let y = 61;
+    const range = document.getElementById('report-date-range');
+    addText(range ? range.innerText : 'Your weekly reflection', margin, y, 9, colors.muted);
+    y += 10;
+
+    const overviewItems = [...document.querySelectorAll('#report-overview-grid .report-overview-item')];
+    if (overviewItems.length) {
+        const gap = 4; const cardWidth = (contentWidth - (gap * 2)) / 3;
+        overviewItems.slice(0, 3).forEach((item, index) => { const strong = item.querySelector('strong'); const span = item.querySelector('span'); const x = margin + (index * (cardWidth + gap)); roundedCard(x, y, cardWidth, 22, [248, 250, 252]); addText(strong ? strong.innerText : '', x + 5, y + 9, 13, colors.blue, { bold: true }); addText(span ? span.innerText : '', x + 5, y + 17, 7.5, colors.muted); });
+        y += 30;
+    }
+
+    const chartColumns = [...document.querySelectorAll('#mood-weekly-chart .mood-chart-column')];
+    if (chartColumns.length) {
+        roundedCard(margin, y, contentWidth, 61, [255, 255, 255]);
+        addText('Mood pattern at a glance', margin + 7, y + 10, 11, colors.blue, { bold: true });
+        const baseY = y + 51; const chartHeight = 31; const barWidth = Math.min(18, (contentWidth - 24) / chartColumns.length - 5); const maxCount = Math.max(...chartColumns.map((column) => Number(column.querySelector('.mood-chart-count')?.innerText || 1)));
+        chartColumns.forEach((column, index) => { const count = Number(column.querySelector('.mood-chart-count')?.innerText || 0); const label = column.querySelector('.mood-chart-label')?.innerText || 'Mood'; const barHeight = Math.max(4, (count / maxCount) * chartHeight); const x = margin + 10 + (index * ((contentWidth - 20) / chartColumns.length)); pdf.setFillColor(...[79, 172, 254]); pdf.roundedRect(x, baseY - barHeight, barWidth, barHeight, 2, 2, 'F'); addText(String(count), x + (barWidth / 2), baseY - barHeight - 3, 7, colors.navy, { bold: true, align: 'center' }); addText(label, x + (barWidth / 2), baseY + 8, 6.5, colors.muted, { align: 'center' }); });
+        y += 70;
+    }
+
+    const suggestion = document.getElementById('weekly-suggestions-text');
+    roundedCard(margin, y, contentWidth, 35, [239, 246, 255], [191, 219, 254]);
+    addText('Personalized wellness suggestion', margin + 7, y + 10, 10, colors.blue, { bold: true });
+    addWrapped(suggestion ? suggestion.innerText : '', margin + 7, y + 19, contentWidth - 14, 8.5, colors.muted, 4.5);
+    y += 44;
+
+    const activities = [...document.querySelectorAll('#report-activity-list .report-activity-item')];
+    if (activities.length) {
+        addText('Short activities for this week', margin, y, 11, colors.blue, { bold: true }); y += 7;
+        const activityWidth = (contentWidth - 8) / 3;
+        activities.slice(0, 3).forEach((activity, index) => { const x = margin + (index * (activityWidth + 4)); roundedCard(x, y, activityWidth, 32, [248, 250, 252]); const title = activity.querySelector('strong'); addText(title ? title.innerText : `Activity ${index + 1}`, x + 5, y + 9, 8, colors.purple, { bold: true }); addWrapped(activity.innerText.replace(title ? title.innerText : '', '').trim(), x + 5, y + 17, activityWidth - 10, 7.2, colors.muted, 3.6); });
+        y += 42;
+    }
+    addText('A small step is still progress. Keep reflecting gently.', margin, Math.min(y, 280), 8, colors.muted);
+    pdf.setDrawColor(...colors.cyan); pdf.line(margin, 286, pageWidth - margin, 286);
+    addText('MindMappers Wellness Space · mindey.support@gmail.com', margin, 293, 7.5, colors.muted);
+    pdf.save(`mindmappers-weekly-report-${getLocalDateKey()}.pdf`);
+}
+
+function closeWeeklyReport() {
+    const reportContainer = document.getElementById('weekly-report-container');
+    if (!reportContainer) return;
+    reportContainer.style.display = 'none';
+    const statusElement = document.getElementById('mood-status');
+    if (statusElement) statusElement.innerText = 'Your weekly report is saved in your reflection space. ✨';
 }
 
 // ==========================================
@@ -1085,7 +1578,7 @@ function listenToApplicationsAsStaff() {
                             <span class="staff-pending-pill"><span></span> Pending review</span>
                         </div>
                         <p class="staff-applicant-email">${applicantEmail}</p>
-                        <div class="staff-application-meta"><span>Preferred Community Class :</span><b>${preferredClass}</b></div>
+                        <div class="staff-application-meta"><span>Preferred community room</span><b>${preferredClass}</b></div>
                     </div>
                 </div>
                 <div class="staff-application-actions">
@@ -1427,8 +1920,9 @@ const communityRoomContent = {
         ],
         takeaway: "Understanding your feelings is not overthinking; it is one way of caring for yourself with honesty.",
         images: [
-            { src: "mental1.jpeg", alt: "Mental well-being workshop with a mentor speaking to students", caption: "A guided conversation about feelings and emotional awareness." },
-            { src: "mental2.jpeg", alt: "Students listening during a mental well-being session", caption: "Making space to listen, reflect, and feel understood." },
+            { src: "WhatsAppImage2026-08-18at9.38.34.jpeg", alt: "Mental well-being workshop with a mentor speaking to students", caption: "A guided conversation about feelings and emotional awareness." },
+            { src: "WhatsAppImage2026-08-18at9.38.34PM.jpeg", alt: "Students listening during a mental well-being session", caption: "Making space to listen, reflect, and feel understood." },
+            { src: "Screenshot2026-08-19200805.png", alt: "A facilitator speaking at a supportive group gathering", caption: "Learning together in a welcoming group setting." }
         ]
     },
     yoga: {
@@ -1436,7 +1930,7 @@ const communityRoomContent = {
         icon: "ॐ",
         theme: "room-yoga",
         title: "Yoga Class",
-        mentor: "Mr. Vikas Sir",
+        mentor: "Vikas Sir",
         intro: "A calm movement room where breath, posture, and body awareness come together to support balance and steadiness.",
         focus: "Today’s focus: Breathing into space and ease",
         activities: [
@@ -1446,10 +1940,10 @@ const communityRoomContent = {
         ],
         takeaway: "Yoga is not a competition with your body. It is a conversation with it.",
         images: [
-            { src: "yoga1.jpeg", alt: "A group practising movement together in a green outdoor space", caption: "Movement, energy, and connection in the open air." },
-            { src: "yoga2.jpeg", alt: "A group doing balance exercises outdoors", caption: "Building balance with patience and playfulness." },
-            { src: "yoga3.jpeg", alt: "A large group following a guided outdoor exercise", caption: "Every body can find a comfortable way to participate." },
-            { src: "yoga4.jpeg", alt: "People moving together during an outdoor wellness activity", caption: "A shared rhythm makes practice feel lighter." }
+            { src: "WhatsAppImage2026-08-19at7.00.46AM.jpeg", alt: "A group practising movement together in a green outdoor space", caption: "Movement, energy, and connection in the open air." },
+            { src: "WhatsAppImage2026-08-19at7.00.46AM(1).jpeg", alt: "A group doing balance exercises outdoors", caption: "Building balance with patience and playfulness." },
+            { src: "WhatsAppImage2026-08-19at6.59.07AM.jpeg", alt: "A large group following a guided outdoor exercise", caption: "Every body can find a comfortable way to participate." },
+            { src: "WhatsAppImage2026-08-19at7.00.46AM(2).jpeg", alt: "People moving together during an outdoor wellness activity", caption: "A shared rhythm makes practice feel lighter." }
         ]
     },
     art: {
@@ -1457,7 +1951,7 @@ const communityRoomContent = {
         icon: "✎",
         theme: "room-art",
         title: "Art Class",
-        mentor: "Ms. Kanupriya Maam",
+        mentor: "Kanupriya Maam",
         intro: "A playful creative room where colour, shape, and texture help you express what words may not yet be ready to say.",
         focus: "Today’s focus: Turning an emotion into an image",
         activities: [
@@ -1467,9 +1961,9 @@ const communityRoomContent = {
         ],
         takeaway: "There is no wrong way to create when the purpose is to listen to yourself.",
         images: [
-            { src: "art1.jpeg", alt: "A creative group proudly holding decorated art frames", caption: "Celebrating the joy of making something personal." },
-            { src: "art2.jpeg", alt: "A colourful group workshop display on a stage", caption: "Colour, collaboration, and confidence in the creative room." },
-            { src: "art3.jpeg", alt: "A colourful collection of decorative nutcracker figures", caption: "Finding inspiration in texture, colour, and playful details." }
+            { src: "WhatsAppImage2026-08-18at4.27.24PM(1).jpeg", alt: "A creative group proudly holding decorated art frames", caption: "Celebrating the joy of making something personal." },
+            { src: "WhatsAppImage2026-08-18at4.27.24PM.jpeg", alt: "A colourful group workshop display on a stage", caption: "Colour, collaboration, and confidence in the creative room." },
+            { src: "WhatsAppImage2026-08-18at4.27.35PM.webp", alt: "A colourful collection of decorative nutcracker figures", caption: "Finding inspiration in texture, colour, and playful details." }
         ]
     }
 };
